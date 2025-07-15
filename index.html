@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Phonetic Speller</title>
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#4CAF50">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="Phonetic Speller">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background-color: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 30px;
+        }
+        .input-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #555;
+        }
+        input[type="text"] {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            font-size: 16px;
+            box-sizing: border-box;
+        }
+        input[type="text"]:focus {
+            border-color: #4CAF50;
+            outline: none;
+        }
+        .output {
+            background-color: #f9f9f9;
+            padding: 15px;
+            border-radius: 5px;
+            border: 1px solid #ddd;
+            min-height: 100px;
+            font-size: 16px;
+            line-height: 1.6;
+            margin-bottom: 20px;
+        }
+        .buttons {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background-color 0.3s;
+        }
+        .btn-primary {
+            background-color: #4CAF50;
+            color: white;
+        }
+        .btn-primary:hover {
+            background-color: #45a049;
+        }
+        .btn-secondary {
+            background-color: #008CBA;
+            color: white;
+        }
+        .btn-secondary:hover {
+            background-color: #007B9A;
+        }
+        .btn-accent {
+            background-color: #ff9800;
+            color: white;
+        }
+        .btn-accent:hover {
+            background-color: #e68900;
+        }
+        .keyboard-hint {
+            text-align: center;
+            color: #666;
+            font-size: 14px;
+            margin-top: 20px;
+            padding: 10px;
+            background-color: #e8f5e8;
+            border-radius: 5px;
+        }
+        .examples {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #f0f8ff;
+            border-radius: 5px;
+        }
+        .examples h3 {
+            margin-top: 0;
+            color: #333;
+        }
+        .example-item {
+            margin: 5px 0;
+            font-family: monospace;
+            color: #555;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📞 Phonetic Speller</h1>
+        
+        <div class="input-group">
+            <label for="textInput">Enter text to spell phonetically:</label>
+            <input type="text" id="textInput" placeholder="e.g., Resha, 123 Main St, credit card number..." autofocus>
+        </div>
+        
+        <div class="output" id="output">
+            <em>Enter text above to see phonetic spelling...</em>
+        </div>
+        
+        <div class="buttons">
+            <button class="btn-primary" onclick="copyToClipboard()">📋 Copy to Clipboard</button>
+            <button class="btn-secondary" onclick="speakPhonetic()">🔊 Speak Phonetic</button>
+            <button class="btn-accent" onclick="clearAll()">🗑️ Clear</button>
+        </div>
+        
+        <div class="keyboard-hint">
+            💡 <strong>Tip:</strong> Press <kbd>Ctrl+Enter</kbd> to copy phonetic spelling to clipboard
+        </div>
+        
+        <div class="examples">
+            <h3>Examples:</h3>
+            <div class="example-item"><strong>Resha</strong> → R as in Romeo, E as in Echo, S as in Sierra, H as in Hotel, A as in Alpha</div>
+            <div class="example-item"><strong>123</strong> → 1 as in One, 2 as in Two, 3 as in Three</div>
+            <div class="example-item"><strong>Main St</strong> → M as in Mike, A as in Alpha, I as in India, N as in November, [space], S as in Sierra, T as in Tango</div>
+        </div>
+    </div>
+
+    <script>
+        const phoneticMap = {
+            'A': 'Alpha', 'B': 'Bravo', 'C': 'Charlie', 'D': 'Delta', 'E': 'Echo',
+            'F': 'Foxtrot', 'G': 'Golf', 'H': 'Hotel', 'I': 'India', 'J': 'Juliet',
+            'K': 'Kilo', 'L': 'Lima', 'M': 'Mike', 'N': 'November', 'O': 'Oscar',
+            'P': 'Papa', 'Q': 'Quebec', 'R': 'Romeo', 'S': 'Sierra', 'T': 'Tango',
+            'U': 'Uniform', 'V': 'Victor', 'W': 'Whiskey', 'X': 'X-ray', 'Y': 'Yankee',
+            'Z': 'Zulu',
+            '0': 'Zero', '1': 'One', '2': 'Two', '3': 'Three', '4': 'Four',
+            '5': 'Five', '6': 'Six', '7': 'Seven', '8': 'Eight', '9': 'Nine'
+        };
+
+        function convertToPhonetic(text) {
+            if (!text) return '';
+            
+            const chars = text.toUpperCase().split('');
+            const phonetic = [];
+            
+            for (let char of chars) {
+                if (phoneticMap[char]) {
+                    phonetic.push(`${char} as in ${phoneticMap[char]}`);
+                } else if (char === ' ') {
+                    phonetic.push('[space]');
+                } else if (char.match(/[^A-Z0-9]/)) {
+                    phonetic.push(`[${char}]`);
+                }
+            }
+            
+            return phonetic.join(', ');
+        }
+
+        function updateOutput() {
+            const input = document.getElementById('textInput').value;
+            const output = document.getElementById('output');
+            
+            if (input.trim() === '') {
+                output.innerHTML = '<em>Enter text above to see phonetic spelling...</em>';
+                return;
+            }
+            
+            const phonetic = convertToPhonetic(input);
+            output.textContent = phonetic;
+        }
+
+        function copyToClipboard() {
+            const output = document.getElementById('output');
+            const text = output.textContent;
+            
+            if (text && !text.includes('Enter text above')) {
+                navigator.clipboard.writeText(text).then(() => {
+                    // Visual feedback
+                    const originalText = output.textContent;
+                    output.textContent = '✅ Copied to clipboard!';
+                    setTimeout(() => {
+                        output.textContent = originalText;
+                    }, 1000);
+                }).catch(err => {
+                    console.error('Failed to copy: ', err);
+                    // Fallback for older browsers
+                    const textArea = document.createElement('textarea');
+                    textArea.value = text;
+                    document.body.appendChild(textArea);
+                    textArea.select();
+                    document.execCommand('copy');
+                    document.body.removeChild(textArea);
+                    
+                    const originalText = output.textContent;
+                    output.textContent = '✅ Copied to clipboard!';
+                    setTimeout(() => {
+                        output.textContent = originalText;
+                    }, 1000);
+                });
+            }
+        }
+
+        function speakPhonetic() {
+            const output = document.getElementById('output');
+            const text = output.textContent;
+            
+            if (text && !text.includes('Enter text above') && 'speechSynthesis' in window) {
+                const utterance = new SpeechSynthesisUtterance(text);
+                utterance.rate = 0.8;
+                utterance.pitch = 1;
+                speechSynthesis.speak(utterance);
+            }
+        }
+
+        function clearAll() {
+            document.getElementById('textInput').value = '';
+            document.getElementById('output').innerHTML = '<em>Enter text above to see phonetic spelling...</em>';
+            document.getElementById('textInput').focus();
+        }
+
+        // Event listeners
+        document.getElementById('textInput').addEventListener('input', updateOutput);
+        document.getElementById('textInput').addEventListener('keydown', function(event) {
+            if (event.ctrlKey && event.key === 'Enter') {
+                copyToClipboard();
+            }
+        });
+
+        // Auto-focus on load
+        window.addEventListener('load', function() {
+            document.getElementById('textInput').focus();
+        });
+
+        // Register service worker for PWA
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('./sw.js');
+        }
+    </script>
+</body>
+</html>
